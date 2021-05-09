@@ -1,9 +1,11 @@
-use structopt::StructOpt;
+use futures::stream::StreamExt;
 use mongodb::{
+    bson::{Bson, Document},
     error::Error,
     options::{ClientOptions},
     Client, Database,
 };
+use structopt::StructOpt;
 
 async fn list_databases(client: &Client) -> Result<Vec<String>, Error> {
     let databases: Result<Vec<String>, Error> = client.list_database_names(None, None).await;
@@ -91,13 +93,30 @@ async fn main() -> mongodb::error::Result<()> {
         Err(e) => println!("{}", e),
     }
 
-    let db = client.database("mydb");
+    let database_name = "mydb";
+    let db = client.database(database_name);
     match list_collections(&db).await {
         Ok(collections) => {
             println!("\nCollections: ");
             print(collections, true, false);
         }
         Err(e) => println!("{}", e),
+    }
+
+    let collection_name = "books";
+    let collection = db.collection::<Document>(collection_name);
+    let mut cursor = collection.find(None, None).await?;
+
+    println!("\nDocuments: ");
+    while let Some(result) = cursor.next().await {
+        match result {
+            Ok(document) => {
+                let title = document.get("title").and_then(Bson::as_str);
+                let author = document.get("author").and_then(Bson::as_str);
+                println!("title: {:?}, article: {:?}", title, author);
+            }
+            Err(e) => return Err(e.into()),
+        }
     }
 
     Ok(())
