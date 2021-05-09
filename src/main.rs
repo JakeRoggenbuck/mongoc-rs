@@ -1,19 +1,23 @@
 use futures::stream::StreamExt;
 use mongodb::{
+    error::Error,
     bson::{doc, Bson, Document},
     options::{ClientOptions, FindOptions},
-    Client,
+    Client, Database, Collection
 };
-use std::process;
-use std::env;
 use structopt::StructOpt;
+use futures::executor::block_on;
 
 
-trait Finder {}
+async fn list_databases(client: Client) -> Result<Vec<String>, Error> {
+    let databases: Result<Vec<String>, Error> = client.list_database_names(None, None).await;
+    return databases;
+}
 
-struct Database {}
-
-impl Finder for Database {}
+async fn list_collections(database: Database) -> Result<Vec<String>, Error> {
+    let collections: Result<Vec<String>, Error> = database.list_collection_names(None).await;
+    return collections;
+}
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "mongoc-rs", about = "Quickly view your mongodb")]
@@ -46,6 +50,16 @@ async fn main() -> mongodb::error::Result<()> {
 
     client_options.app_name = Some("mongoc-rs".to_string());
     let client = Client::with_options(client_options)?;
+
+    let db = client.database("mydb");
+    match list_collections(db).await {
+        Ok(collections) => {
+            for c in collections {
+                println!("{}", c);
+            }
+        },
+        Err(e) => println!("{}", e)
+    }
 
     Ok(())
 }
