@@ -1,12 +1,9 @@
-use futures::executor::block_on;
-use futures::stream::StreamExt;
-use mongodb::{
-    bson::{doc, Bson, Document},
-    error::Error,
-    options::{ClientOptions, FindOptions},
-    Client, Collection, Database,
-};
 use structopt::StructOpt;
+use mongodb::{
+    error::Error,
+    options::{ClientOptions},
+    Client, Database,
+};
 
 async fn list_databases(client: &Client) -> Result<Vec<String>, Error> {
     let databases: Result<Vec<String>, Error> = client.list_database_names(None, None).await;
@@ -55,6 +52,8 @@ fn print(items: Vec<String>, enumerate: bool, numeric: bool) {
 #[derive(Debug, StructOpt)]
 #[structopt(name = "mongoc-rs", about = "Quickly view your mongodb")]
 struct Opt {
+    item: Option<String>,
+
     /// The port mongodb client will use
     #[structopt(long = "port", short = "p", default_value = "27017")]
     port: u32,
