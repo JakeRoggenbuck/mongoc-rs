@@ -20,20 +20,32 @@ impl Finder for Database {}
 struct Opt {
     /// The port mongodb client will use
     #[structopt(long = "port", short = "p", default_value = "27017")]
-    port: u8,
+    port: u32,
 
     /// The location mongodb is at
     #[structopt(long = "location", short = "l", default_value = "localhost")]
     location: String,
+
+    #[structopt(long = "verbose", short = "v")]
+    verbose: bool,
+}
+
+fn make_url(port: u32, location: String) -> String {
+    return "mongodb://".to_owned() + &location + ":" + &port.to_string();
 }
 
 #[tokio::main]
 async fn main() -> mongodb::error::Result<()> {
-    let mut client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
+    let args = Opt::from_args();
+
+    let client_url = &make_url(args.port, args.location);
+    if args.verbose {
+        println!("Using url {}", client_url);
+    }
+    let mut client_options = ClientOptions::parse(client_url).await?;
 
     client_options.app_name = Some("mongoc-rs".to_string());
     let client = Client::with_options(client_options)?;
 
-    Opt::from_args();
     Ok(())
 }
