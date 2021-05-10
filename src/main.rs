@@ -1,12 +1,8 @@
 use futures::stream::StreamExt;
+use mongodb::{bson::Document, error::Error, options::ClientOptions, Client, Database};
 use std::io::{stdin, stdout, Write};
-use mongodb::{
-    bson::Document,
-    error::Error,
-    options::ClientOptions,
-    Client, Database,
-};
 use structopt::StructOpt;
+use termion::{color, style};
 
 async fn list_databases(client: &Client) -> Result<Vec<String>, Error> {
     let databases: Result<Vec<String>, Error> = client.list_database_names(None, None).await;
@@ -18,10 +14,25 @@ async fn list_collections(database: &Database) -> Result<Vec<String>, Error> {
     return collections;
 }
 
+fn print_alias_line(alias: String, item: String) {
+    println!(
+        "{}{}{}{}:{}\t{}",
+        color::Fg(color::Red),
+        style::Bold,
+        alias,
+        style::Reset,
+        color::Fg(color::Reset),
+        item
+    );
+}
+
 fn letter_print(items: &Vec<String>) {
     let mut index: u32 = 10;
     for item in items {
-        println!("{}:\t{}", std::char::from_digit(index, 16).unwrap(), item);
+        print_alias_line(
+            std::char::from_digit(index, 16).unwrap().to_string(),
+            item.to_string(),
+        );
         index += 1;
     }
 }
@@ -29,7 +40,7 @@ fn letter_print(items: &Vec<String>) {
 fn enumerate_print(items: &Vec<String>) {
     let mut index: u32 = 0;
     for item in items {
-        println!("{}:\t{}", index, item);
+        print_alias_line(index.to_string(), item.to_string());
         index += 1;
     }
 }
@@ -50,6 +61,7 @@ fn print(items: &Vec<String>, enumerate: bool, numeric: bool) {
     } else {
         normal_print(items);
     }
+    print!("\n");
 }
 
 #[derive(Debug, StructOpt)]
